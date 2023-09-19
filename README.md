@@ -48,5 +48,5 @@ I'm Victor, a keen data enthusiast with a strong Python and data analysis concen
 ![](https://quotes-github-readme.vercel.app/api?type=horizontal&theme=radical)
 
 ## 📊 GitHub Stats:
-![](https://github-readme-stats.vercel.app/api?username=X-Soma&theme=dark&hide_border=true&include_all_commits=false&count_private=true)<br/>
+
 ![](https://github-readme-streak-stats.herokuapp.com/?user=X-Soma&theme=dark&hide_border=true)<br/>
