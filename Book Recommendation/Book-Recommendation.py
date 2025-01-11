@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import linear_kernel
 st.title("Book Recommendation System")
 
 # File upload
-uploaded_file = st.file_uploader("book_data.csv", type=["csv"])
+uploaded_file = st.file_uploader("Upload your book data CSV file", type=["csv"])
 if uploaded_file:
     # Read the uploaded file
     data = pd.read_csv(uploaded_file)
