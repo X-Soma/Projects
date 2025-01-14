@@ -1,113 +1,103 @@
 import streamlit as st
-
 import pandas as pd
+import plotly.graph_objects as go
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 
-st.dataframe(pd.DataFrame({
-    'first column' : [1, 2, 3, 4],
-    'second column' : [10, 20, 30, 40]
-}))
 
-st.write(pd.DataFrame({
-    'first column': [1, 2, 3, 4],
-    'second column': [10, 20, 30, 40]
-}))
+# --- Function to perform all the data processing and similarity tasks ---
+def analyze_book_data(data):
+    # Keep only relevant columns, handle errors
+    required_cols = {"book_title", "book_desc", "book_rating_count"}
+    if not required_cols.issubset(data.columns):
+        st.error(f"The dataset must contain '{', '.join(required_cols)}' columns.")
+        return None  # Return None to signal an error and prevent further processing
 
-import numpy as np
+    data = data[list(required_cols)].copy()  # Copy to avoid SettingWithCopyWarning
 
-chart_data = pd.DataFrame(
-    np.random.randn(20, 3),
-    columns=['a', 'b', 'c'])
+    # Handle missing values
+    st.write("Checking for missing values...")
+    st.write(data.isnull().sum())
+    data.dropna(inplace=True)
 
-st.line_chart(chart_data)
+    # Sort by rating count and display the top 5
+    data.sort_values(by="book_rating_count", ascending=False, inplace=True)
+    top_5 = data.head().copy() # Copy to avoid SettingWithCopyWarning
+    st.subheader("Top 5 Rated Books")
+    st.write(top_5)
 
-map_data = pd.DataFrame(
-    np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-    columns=['lat', 'lon'])
+    # Plot Pie Chart for Top 5 Rated Books
+    labels = top_5["book_title"]
+    values = top_5["book_rating_count"]
+    colors = ['gold', 'lightgreen']
 
-st.map(map_data)
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values)])
+    fig.update_layout(title_text="Top 5 Rated Books")
+    fig.update_traces(hoverinfo='label+percent', textinfo='percent', textfont_size=15,
+                      marker=dict(colors=colors, line=dict(color='black', width=2)))
+    st.plotly_chart(fig)
 
-if st.checkbox('Show dataframe'):
-    st.dataframe(pd.DataFrame({
-        'first column': [1, 2, 3, 4],
-        'second column': [10, 20, 30, 40]
-    }))
+    # TF-IDF and Similarity Calculation
+    st.subheader("Book Similarity Analysis")
+    feature = data["book_desc"].tolist()
+    tfidf = TfidfVectorizer(input="content", stop_words="english")
+    tfidf_matrix = tfidf.fit_transform(feature)
+    similarity = linear_kernel(tfidf_matrix, tfidf_matrix)
 
-    chart_data = pd.DataFrame(
-        np.random.randn(20, 3),
-        columns=['a', 'b', 'c'])
+    return data, similarity
 
-    st.line_chart(chart_data)
 
-    map_data = pd.DataFrame(
-        np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-        columns=['lat', 'lon'])
+# --- Streamlit App ---
+st.title("Book Recommendation System")
 
-    st.map(map_data)
-if st.checkbox('Show dataframe'):
-    st.dataframe(pd.DataFrame({
-        'first column': [1, 2, 3, 4],
-        'second column': [10, 20, 30, 40]
-    }))
 
-    chart_data = pd.DataFrame(
-        np.random.randn(20, 3),
-        columns=['a', 'b', 'c'])
+# Default sample DataFrame
+data = pd.DataFrame({
+    'book_title': [
+        'The Hitchhiker\'s Guide to the Galaxy',
+        'Pride and Prejudice',
+        'To Kill a Mockingbird',
+        '1984',
+        'The Lord of the Rings',
+        'Jane Eyre',
+         'The Great Gatsby',
+         'Harry Potter and the Sorcerer\'s Stone',
+         'The Da Vinci Code',
+         'The Girl with the Dragon Tattoo'
+    ],
+    'book_desc': [
+        'A humorous science fiction series about a man who travels the galaxy.',
+        'A classic romantic novel about love, class, and society.',
+        'A novel about childhood, prejudice, and justice in the American South.',
+        'A dystopian novel about totalitarianism and government control.',
+        'An epic fantasy series about the battle between good and evil.',
+        'A gothic novel about love, secrets, and a strong heroine.',
+        'A tragic love story set during the Jazz Age, exploring themes of wealth and the American Dream.',
+        'The first book in a beloved series about a boy wizard.',
+        'A mystery thriller about symbology and secret societies.',
+        'A gripping crime thriller featuring a resourceful female hacker.'
+    ],
+    'book_rating_count': [500, 450, 480, 550, 600, 400, 475, 575, 525, 490]
+})
 
-    st.line_chart(chart_data)
 
-    map_data = pd.DataFrame(
-        np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-        columns=['lat', 'lon'])
+st.subheader("Sample Data")
+st.write(data.head())
 
-    st.map(map_data)
 
-df = pd.DataFrame(
-    np.random.randn(20, 3),
-    columns=['a', 'b', 'c'])
+analysis_results = analyze_book_data(data)
 
-column = st.selectbox(
-    'What column to you want to display',
-     df.columns)
+if analysis_results:
+    data, similarity = analysis_results
 
-st.line_chart(df[column])
+    # Interactive similarity finder
+    selected_book = st.selectbox("Select a book to find similar ones:", data["book_title"])
+    if selected_book:
+        book_index = data[data["book_title"] == selected_book].index[0]
+        sim_scores = list(enumerate(similarity[book_index]))
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+        top_similar_books = [data.iloc[i[0]]["book_title"] for i in sim_scores[1:6]]
 
-df = pd.DataFrame(
-    np.random.randn(20, 3),
-    columns=['a', 'b', 'c'])
-
-columns = st.multiselect(
-    label='What column to you want to display', options=df.columns)
-
-st.line_chart(df[columns])
-
-x = st.slider('Select a value')
-st.write(x, 'squared is', x * x)
-
-x = st.slider(
-    'Select a range of values',
-    0.0, 100.0, (25.0, 75.0))
-st.write('Range values:', x)
-@st.cache
-def fetch_and_clean_data():
-    df = pd.read_csv('<some csv>')
-    # do some cleaning
-    return df
-import streamlit as st
-
-# Add a slider to the sidebar:
-add_slider = st.sidebar.slider(
-    'Select a range of values',
-    0.0, 100.0, (25.0, 75.0)
-)
-import streamlit as st
-
-left_column, right_column = st.beta_columns(2)
-# You can use a column just like st.sidebar:
-left_column.button('Press me!')
-
-# Or even better, call Streamlit functions inside a "with" block:
-with right_column:
-    chosen = st.radio(
-        'Sorting hat',
-        ("Gryffindor", "Ravenclaw", "Hufflepuff", "Slytherin"))
-    st.write(f"You are in {chosen} house!")
+        st.write(f"Books similar to '{selected_book}':")
+        for book in top_similar_books:
+            st.write(f"- {book}")
